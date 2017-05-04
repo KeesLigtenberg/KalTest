@@ -106,10 +106,16 @@ Int_t TKalTrackSite::CalcXexp(const TVKalState &a,
 
    if(!TBField::IsUsingUniformBfield()) {
 	   const double eps = 1.e-5; 
-	   return ms.CalcXingPointWith(*hel,xx,phi,eps);
+	   Int_t intersect=ms.CalcXingPointWith(*hel,xx,phi,eps);
+	   if(!intersect) //use closest point if no intersection
+		   return ms.calcClosestPointWith(*hel,xx,phi,eps);
+	   return intersect;
    }
    else {
-	   return ms.CalcXingPointWith(*hel,xx,phi);
+	   Int_t intersect = ms.CalcXingPointWith(*hel,xx,phi);
+	   if(!intersect)
+		   return ms.calcClosestPointWith(*hel,xx,phi);
+	   return intersect;
    }
 
 }
@@ -122,8 +128,8 @@ Int_t TKalTrackSite::CalcExpectedMeasVec(const TVKalState &a, TKalMatrix &h)
    TVector3 xxv;
    if (!CalcXexp(a,xxv,phi)) return 0;	// no hit
 
-   if (a.GetNrows() == 6) h = GetHit().XvToMv(xxv,a(5,0));
-   else                   h = GetHit().XvToMv(xxv,0.);
+   if (a.GetNrows() == 6) h = GetHit().XvToMv(xxv,a(5,0),a);
+   else                   h = GetHit().XvToMv(xxv,0., a);
 
    return 1;
 }
@@ -141,10 +147,17 @@ Int_t TKalTrackSite::CalcMeasVecDerivative(const TVKalState &a,
    TVector3      xxv;
    Double_t      phi = 0.;
 
-   if (!CalcXexp(a,xxv,phi)) return 0; // hit on S(x) = 0
+   int nCrossings=CalcXexp(a,xxv,phi);
+   if (!nCrossings) return 0; // hit on S(x) = 0
 
    const TVSurface &ms = dynamic_cast<const TVSurface &>(GetHit().GetMeasLayer());
    TKalMatrix    dsdx(ms.CalcDSDx(xxv));   // (@S(x)/@x)
+
+   if(nCrossings==-2) {//-2 indicates xxv was a closest point, not a crossing!
+	   auto x=dsdx(0,0), y=dsdx(0,1);
+	   dsdx(0,1)=x; dsdx(0,0)=-y; //use vector perpendicular in xy plane instead.
+	   //fixme: If I understand correctly it does not matter how this vector is changed as long as it is not perpendicular to the difference. Or does this work only for cylinders along z?
+   }
 
    std::auto_ptr<TVTrack> hel(&static_cast<const TKalTrackState &>(a).CreateTrack());
 
@@ -158,7 +171,7 @@ Int_t TKalTrackSite::CalcMeasVecDerivative(const TVKalState &a,
 
    TKalMatrix dxphiada = dxdphi * dphida + dxda; // (@x(phi(a),a)/@a)
 
-   GetHit().GetMeasLayer().CalcDhDa(GetHit(), xxv, dxphiada, H); // H = (@h/@a)
+   GetHit().GetMeasLayer().CalcDhDa(GetHit(),a, xxv, dxphiada, H); // H = (@h/@a)
 
    return 1;
 }

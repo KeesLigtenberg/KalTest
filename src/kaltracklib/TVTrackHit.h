@@ -21,6 +21,7 @@
 #include "TKalMatrix.h"    // from KalLib
 #include "KalTrackDim.h"   // from KalTrackLib
 #include "TVMeasLayer.h"   // from KalTrackLib
+#include "TKalTrackState.h"// from KalTrackLib
 
 class TVTrackHit : public TKalMatrix {
 public:
@@ -40,7 +41,9 @@ public:
    inline virtual const TVMeasLayer & GetMeasLayer() const 
                                                 { return *fMeasLayerPtr;    }
 
-   virtual TKalMatrix XvToMv  (const TVector3 &xv, Double_t t0)  const = 0;
+   //second method should be called preferably, but first one is still pure virtual
+   virtual TKalMatrix XvToMv  (const TVector3 &xv, Double_t t0)  const =0;
+   virtual TKalMatrix XvToMv  (const TVector3 &xv, Double_t t0, const TKalTrackState&)  const { return XvToMv(xv, t0); }
 
   //   virtual void       DebugPrint(Option_t *opt = "")        const = 0;
 

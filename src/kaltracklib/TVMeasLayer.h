@@ -33,6 +33,7 @@
 #include "TAttElement.h"    // from Utils
 #include "TKalMatrix.h"     // from KalLib
 #include "KalTrackDim.h"    // from KalTrackLib
+#include "TKalTrackState.h"  // from KalTrackLib
 
 class TVTrack;
 class TVTrackHit;
@@ -48,14 +49,24 @@ public:
    virtual ~TVMeasLayer() {}
 
    // Utiliy Methods
+   // the version with TKalTrackState a as argument should be called
+   // should others be kept pure virtual or empty?
 
    virtual TKalMatrix XvToMv   (const TVTrackHit &ht,
                                 const TVector3   &xv) const = 0;
+   virtual TKalMatrix XvToMv   (const TVTrackHit &ht,
+                                const TVector3   &xv,
+								const TKalTrackState& ) const { return XvToMv(ht,xv); }
    virtual TVector3   HitToXv  (const TVTrackHit &ht) const = 0;
    virtual void       CalcDhDa (const TVTrackHit &ht,
                                 const TVector3   &xv,
                                 const TKalMatrix &dxphiada,
                                       TKalMatrix &H)  const = 0;
+   virtual void       CalcDhDa (const TVTrackHit &ht,
+								const TKalTrackState&,
+                                const TVector3   &xv,
+                                const TKalMatrix &dxphiada,
+                                      TKalMatrix &H)  const { return CalcDhDa(ht,xv,dxphiada, H); }
 
    inline virtual TMaterial &GetMaterial(Bool_t isoutgoing) const
               { return isoutgoing ? *fMaterialOutPtr : *fMaterialInPtr; }
